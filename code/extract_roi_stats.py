@@ -95,10 +95,11 @@ def extract_roi_info(statfile, stat_name=None, out_dir=None, unilateral=True,
         stats_dict = {
                 'Region': [],
                 'K': [],
-                'Max.': []
+                'Max.': [],
+                'Division': []
         }
 
-        for atlas in [cort_rois, subc_rois]:
+        for atlas, a_name in [(cort_rois, 'cort'), (subc_rois, 'scort')]:
 
             atlas_map = atlas['maps'].get_data()
             labels = atlas['labels']
@@ -117,10 +118,14 @@ def extract_roi_info(statfile, stat_name=None, out_dir=None, unilateral=True,
                     stats_dict['Region'].append(roi)
                     stats_dict['K'].append(n_vox_per_roi)
                     stats_dict['Max.'].append(max_stat)
+                    stats_dict['Division'].append(a_name)
 
         stats_df = pd.DataFrame(stats_dict)
-        stats_df = stats_df.sort_values(by='K', ascending=False, axis=0)
-        
+        stats_df = stats_df.sort_values(by=['Division', 'K'], ascending=[True, False], axis=0)
+
+        if stats_df.shape[0] == 0:
+            continue
+
         for col in ['Cluster nr.', 'Cluster size', 'Cluster max.', 'X', 'Y', 'Z']:
             stats_df[col] = np.nan
 
@@ -151,12 +156,12 @@ def extract_roi_info(statfile, stat_name=None, out_dir=None, unilateral=True,
 
 if __name__ == '__main__':
 
-    base_dir = '../results/FEAT.gfeat'
+    base_dir = '../results/wholebrain.gfeat'
 
-    for cope in glob(op.join(base_dir, 'cope*.feat')):
+    for cope in sorted(glob(op.join(base_dir, 'cope*.feat'))):
 
         for zstat in glob(op.join(cope, 'thresh_zstat*.nii.gz')):
-            
+            print("Processing %s" % zstat)
             extract_roi_info(
                 statfile=zstat,
                 stat_name=op.basename(zstat).split('.')[0],
